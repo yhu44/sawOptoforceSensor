@@ -335,7 +335,7 @@ void mtsOptoforce3D::Run6D(void)
     };
 
     union PacketDataType {
-        unsigned char bytes[16];
+        unsigned char bytes[22];
         optopacket packet;
     };
 
@@ -354,7 +354,7 @@ void mtsOptoforce3D::Run6D(void)
         while (!found) {
             for (int i = 0; i < n - 3; i++) {
                 if ((buffer.bytes[i] == 170) && (buffer.bytes[i + 1] == 7)
-                    && (buffer.bytes[i + 2] == 8) && (buffer.bytes[i + 3] == 10)) {
+                    && (buffer.bytes[i + 2] == 8) && (buffer.bytes[i + 3] == 16)) {
                     if (i != 0) {                               // If pattern not found at beginning of buffer
                         memmove(buffer.bytes, buffer.bytes + i, n - i);    //    shift so that 170 is in buffer[0]
                         serialPort.Read(buffer.bytes + n - i, i);          //    fill the rest of the buffer
@@ -369,9 +369,9 @@ void mtsOptoforce3D::Run6D(void)
             }
         }
         // Now, process the data
-        //RawSensor.X() = (double)static_cast<short>(_byteswap_ushort(buffer.packet.fx)) * scale.X();
-        //RawSensor.Y() = (double)static_cast<short>(_byteswap_ushort(buffer.packet.fy)) * scale.Y();
-        //RawSensor.Z() = (double)static_cast<short>(_byteswap_ushort(buffer.packet.fz)) * scale.Z();
+        RawSensor.X() = (double)static_cast<short>(_byteswap_ushort(buffer.packet.fx)) * scale.X();
+        RawSensor.Y() = (double)static_cast<short>(_byteswap_ushort(buffer.packet.fy)) * scale.Y();
+        RawSensor.Z() = (double)static_cast<short>(_byteswap_ushort(buffer.packet.fz)) * scale.Z();
         Count = _byteswap_ushort(buffer.packet.count);
         Status = _byteswap_ushort(buffer.packet.status);
         recvChecksum = _byteswap_ushort(buffer.packet.checksum);
@@ -383,9 +383,8 @@ void mtsOptoforce3D::Run6D(void)
         // (Status == 0) means no errors or overload warnings.
         // For now, we check ((Status&0xFC00) == 0), which ignores overload warnings.
         bool valid = (checksum == recvChecksum) && ((Status&0xFC00) == 0);
-        ForceTorque.SetValid(valid);
-        valid = true; //HACK until we get full packet
-        // Hilling in processed values directly
+	    ForceTorque.SetValid(valid);
+        // Filling in processed values directly
         if (valid) {
             ForceTorque.SetForce(vctDouble6((double)static_cast<short>(_byteswap_ushort(buffer.packet.fx)), 
                 (double)static_cast<short>(_byteswap_ushort(buffer.packet.fy)), 
